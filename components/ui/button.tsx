@@ -1,7 +1,7 @@
 import * as React from 'react'
 
 type ButtonProps = React.ButtonHTMLAttributes<HTMLButtonElement> & {
-  variant?: 'default' | 'destructive' | 'outline' | 'ghost' | 'link'
+  variant?: 'default' | 'destructive' | 'outline' | 'ghost' | 'link' | 'secondary'
   size?: 'default' | 'sm' | 'lg' | 'icon'
   asChild?: boolean
 }
@@ -12,6 +12,7 @@ const variantClasses: Record<NonNullable<ButtonProps['variant']>, string> = {
   outline: 'border border-border bg-background hover:bg-accent hover:text-accent-foreground',
   ghost: 'hover:bg-accent hover:text-accent-foreground',
   link: 'underline-offset-4 hover:underline text-primary',
+  secondary: 'bg-muted text-muted-foreground hover:bg-muted/80',
 }
 
 const sizeClasses: Record<NonNullable<ButtonProps['size']>, string> = {
