@@ -3,6 +3,7 @@ import * as React from 'react'
 type ButtonProps = React.ButtonHTMLAttributes<HTMLButtonElement> & {
   variant?: 'default' | 'destructive' | 'outline' | 'ghost' | 'link'
   size?: 'default' | 'sm' | 'lg' | 'icon'
+  asChild?: boolean
 }
 
 const variantClasses: Record<NonNullable<ButtonProps['variant']>, string> = {
@@ -25,22 +26,27 @@ export function Button({
   size = 'default',
   className = '',
   disabled,
+  asChild,
   children,
   ...props
 }: ButtonProps) {
+  const cls = [
+    'inline-flex items-center justify-center rounded-md font-medium transition-colors',
+    'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring',
+    'disabled:pointer-events-none disabled:opacity-50',
+    variantClasses[variant],
+    sizeClasses[size],
+    className,
+  ].join(' ')
+
+  if (asChild && React.isValidElement(children)) {
+    return React.cloneElement(children as React.ReactElement<{ className?: string }>, {
+      className: [cls, (children.props as { className?: string }).className].filter(Boolean).join(' '),
+    })
+  }
+
   return (
-    <button
-      className={[
-        'inline-flex items-center justify-center rounded-md font-medium transition-colors',
-        'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring',
-        'disabled:pointer-events-none disabled:opacity-50',
-        variantClasses[variant],
-        sizeClasses[size],
-        className,
-      ].join(' ')}
-      disabled={disabled}
-      {...props}
-    >
+    <button className={cls} disabled={disabled} {...props}>
       {children}
     </button>
   )

@@ -24,6 +24,14 @@ export function CardTitle({ className = '', children, ...props }: React.HTMLAttr
   )
 }
 
+export function CardDescription({ className = '', children, ...props }: React.HTMLAttributes<HTMLParagraphElement>) {
+  return (
+    <p className={`text-sm text-muted-foreground ${className}`} {...props}>
+      {children}
+    </p>
+  )
+}
+
 export function CardContent({ className = '', children, ...props }: React.HTMLAttributes<HTMLDivElement>) {
   return (
     <div className={`p-6 pt-0 ${className}`} {...props}>
