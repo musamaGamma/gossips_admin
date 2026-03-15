@@ -6,6 +6,16 @@ import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 
+type OutfitEntry = {
+  id: string
+  userId: string
+  username: string
+  caption: string | null
+  createdAt: string
+}
+
+type LiveOutfitEntry = OutfitEntry & { viewCount: number }
+
 function toLocalDateTime(d: Date | string | null): string {
   if (!d) return ''
   const date = typeof d === 'string' ? new Date(d) : d
@@ -19,9 +29,8 @@ function toLocalDateTime(d: Date | string | null): string {
 
 export default function EidOutfitAdminPage() {
   const [event, setEvent] = useState<EidEventConfig | null>(null)
-  const [pending, setPending] = useState<
-    { id: string; userId: string; username: string; caption: string | null; createdAt: string }[]
-  >([])
+  const [pending, setPending] = useState<OutfitEntry[]>([])
+  const [live, setLive] = useState<LiveOutfitEntry[]>([])
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -33,13 +42,16 @@ export default function EidOutfitAdminPage() {
   const [viewLoading, setViewLoading] = useState(false)
   const [viewError, setViewError] = useState<string | null>(null)
   const [actioningId, setActioningId] = useState<string | null>(null)
+  // which list the currently viewed item is from ('pending' | 'live')
+  const [viewingFrom, setViewingFrom] = useState<'pending' | 'live'>('pending')
 
   const load = () => {
     Promise.all([
       adminEidOutfitApi.getEvent(),
       adminEidOutfitApi.listPending(),
+      adminEidOutfitApi.listLive(),
     ])
-      .then(([ev, pend]) => {
+      .then(([ev, pend, lv]) => {
         setEvent(ev)
         if (ev) {
           setIsActive(ev.isActive)
@@ -47,14 +59,13 @@ export default function EidOutfitAdminPage() {
           setEndAt(ev.endAt ? toLocalDateTime(ev.endAt) : '')
         }
         setPending(pend.list ?? [])
+        setLive(lv.list ?? [])
       })
       .catch(() => setEvent(null))
       .finally(() => setLoading(false))
   }
 
-  useEffect(() => {
-    load()
-  }, [])
+  useEffect(() => { load() }, [])
 
   const viewBlobUrlRef = useRef<string | null>(null)
   useEffect(() => {
@@ -111,6 +122,8 @@ export default function EidOutfitAdminPage() {
       await adminEidOutfitApi.approve(id)
       setPending((prev) => prev.filter((p) => p.id !== id))
       if (viewingId === id) setViewingId(null)
+      // refresh live list so the newly approved outfit appears
+      adminEidOutfitApi.listLive().then((r) => setLive(r.list ?? []))
     } finally {
       setActioningId(null)
     }
@@ -126,6 +139,28 @@ export default function EidOutfitAdminPage() {
       setActioningId(null)
     }
   }
+
+  const handleDelete = async (id: string) => {
+    if (!confirm('Delete this live outfit? This cannot be undone.')) return
+    setActioningId(id)
+    try {
+      await adminEidOutfitApi.delete(id)
+      setLive((prev) => prev.filter((o) => o.id !== id))
+      if (viewingId === id) setViewingId(null)
+    } finally {
+      setActioningId(null)
+    }
+  }
+
+  const openViewer = (id: string, from: 'pending' | 'live') => {
+    setViewingFrom(from)
+    setViewingId((prev) => (prev === id ? null : id))
+  }
+
+  const viewingCaption =
+    viewingId
+      ? (viewingFrom === 'live' ? live : pending).find((o) => o.id === viewingId)?.caption
+      : null
 
   if (loading) {
     return (
@@ -150,6 +185,7 @@ export default function EidOutfitAdminPage() {
         </div>
       )}
 
+      {/* ── Event config ─────────────────────────────────────────────────── */}
       <Card>
         <CardHeader>
           <CardTitle>Event config</CardTitle>
@@ -196,9 +232,75 @@ export default function EidOutfitAdminPage() {
         </CardContent>
       </Card>
 
+      {/* ── Live / Approved outfits ───────────────────────────────────────── */}
       <Card>
         <CardHeader>
-          <CardTitle>Pending outfits (manual moderation)</CardTitle>
+          <CardTitle>
+            Live outfits
+            <span className="ml-2 inline-flex items-center rounded-full bg-emerald-100 px-2 py-0.5 text-xs font-medium text-emerald-700">
+              {live.length}
+            </span>
+          </CardTitle>
+          <p className="text-sm text-muted-foreground">
+            All approved outfits visible in the app. You can view or delete any of them.
+          </p>
+        </CardHeader>
+        <CardContent>
+          {live.length === 0 ? (
+            <p className="text-sm text-muted-foreground">No live outfits yet.</p>
+          ) : (
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
+              {live.map((o) => (
+                <div
+                  key={o.id}
+                  className="flex flex-col rounded-lg border border-border bg-card p-3 gap-3"
+                >
+                  <div className="flex items-start justify-between gap-2">
+                    <div className="min-w-0">
+                      <p className="text-xs font-medium text-foreground truncate">@{o.username}</p>
+                      <p className="text-xs text-muted-foreground">{o.viewCount} view{o.viewCount !== 1 ? 's' : ''}</p>
+                    </div>
+                  </div>
+                  <p className="text-sm text-foreground line-clamp-2 min-h-[2.5rem]" title={o.caption ?? undefined}>
+                    {o.caption || <span className="text-muted-foreground italic">No caption</span>}
+                  </p>
+                  <div className="flex flex-wrap items-center gap-2 mt-auto">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="flex-1 min-w-0 sm:flex-initial"
+                      onClick={() => openViewer(o.id, 'live')}
+                    >
+                      {viewingId === o.id ? 'Hide' : 'View'}
+                    </Button>
+                    <Button
+                      variant="destructive"
+                      size="sm"
+                      className="flex-1 min-w-0 sm:flex-initial"
+                      onClick={() => handleDelete(o.id)}
+                      disabled={actioningId !== null}
+                    >
+                      {actioningId === o.id ? '…' : 'Delete'}
+                    </Button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
+      {/* ── Pending outfits ───────────────────────────────────────────────── */}
+      <Card>
+        <CardHeader>
+          <CardTitle>
+            Pending outfits
+            {pending.length > 0 && (
+              <span className="ml-2 inline-flex items-center rounded-full bg-amber-100 px-2 py-0.5 text-xs font-medium text-amber-700">
+                {pending.length}
+              </span>
+            )}
+          </CardTitle>
           <p className="text-sm text-muted-foreground">
             Review and approve or reject uploads. Rejected photos are deleted. Only approved outfits appear in the app during the event.
           </p>
@@ -211,8 +313,9 @@ export default function EidOutfitAdminPage() {
               {pending.map((p) => (
                 <div
                   key={p.id}
-                  className="flex flex-col rounded-lg border border-border bg-card p-3 gap-3"
+                  className="flex flex-col rounded-lg border border-amber-200 bg-amber-50 dark:border-amber-800/40 dark:bg-amber-950/20 p-3 gap-3"
                 >
+                  <p className="text-xs font-medium text-foreground">@{p.username}</p>
                   <p className="text-sm text-foreground line-clamp-2 min-h-[2.5rem]" title={p.caption ?? undefined}>
                     {p.caption || <span className="text-muted-foreground italic">No caption</span>}
                   </p>
@@ -221,7 +324,7 @@ export default function EidOutfitAdminPage() {
                       variant="outline"
                       size="sm"
                       className="flex-1 min-w-0 sm:flex-initial"
-                      onClick={() => setViewingId((id) => (id === p.id ? null : p.id))}
+                      onClick={() => openViewer(p.id, 'pending')}
                     >
                       {viewingId === p.id ? 'Hide' : 'View'}
                     </Button>
@@ -250,17 +353,14 @@ export default function EidOutfitAdminPage() {
         </CardContent>
       </Card>
 
+      {/* ── Image viewer overlay ─────────────────────────────────────────── */}
       {viewingId && (
         <div
           className="fixed inset-0 z-50 flex flex-col items-center justify-center bg-black/90 p-4 gap-4"
           onClick={() => setViewingId(null)}
         >
-          {viewLoading && (
-            <p className="text-white/90">Loading image…</p>
-          )}
-          {viewError && (
-            <p className="text-red-300 text-center max-w-md">{viewError}</p>
-          )}
+          {viewLoading && <p className="text-white/90">Loading image…</p>}
+          {viewError && <p className="text-red-300 text-center max-w-md">{viewError}</p>}
           {viewBlobUrl && (
             <>
               <img
@@ -273,14 +373,14 @@ export default function EidOutfitAdminPage() {
                 className="text-sm text-white/95 text-center max-w-md line-clamp-3"
                 onClick={(e) => e.stopPropagation()}
               >
-                {pending.find((p) => p.id === viewingId)?.caption || 'No caption'}
+                {viewingCaption || 'No caption'}
               </p>
             </>
           )}
           <button
             type="button"
             className="text-white/90 underline text-sm mt-2"
-            onClick={(e) => { e.stopPropagation(); setViewingId(null); }}
+            onClick={(e) => { e.stopPropagation(); setViewingId(null) }}
           >
             Close
           </button>

@@ -232,9 +232,14 @@ export const adminEidOutfitApi = {
     request<{ list: { id: string; userId: string; username: string; caption: string | null; createdAt: string }[] }>(
       '/admin/eid-outfit/pending'
     ),
+  listLive: () =>
+    request<{ list: { id: string; userId: string; username: string; caption: string | null; createdAt: string; viewCount: number }[] }>(
+      '/admin/eid-outfit/live'
+    ),
   getImageUrl: (id: string) => `${API_BASE}/admin/eid-outfit/${encodeURIComponent(id)}/image`,
   approve: (id: string) => request<{ success: boolean }>(`/admin/eid-outfit/${id}/approve`, { method: 'POST' }),
   reject: (id: string) => request<{ success: boolean }>(`/admin/eid-outfit/${id}/reject`, { method: 'POST' }),
+  delete: (id: string) => request<{ success: boolean }>(`/admin/eid-outfit/${id}`, { method: 'DELETE' }),
   fetchImageBlob: async (id: string): Promise<Blob> => {
     const token = getAccessToken()
     const res = await fetch(`${API_BASE}/admin/eid-outfit/${encodeURIComponent(id)}/image`, {
