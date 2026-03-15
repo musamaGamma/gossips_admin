@@ -11,6 +11,12 @@ const nextConfig = {
   // Use admin directory as tracing root so Next doesn't infer parent monorepo root
   // (avoids "multiple lockfiles" warning and "Failed to find Server Action" after deploy)
   outputFileTracingRoot: __dirname,
+  webpack(config) {
+    // Explicitly set @/ alias so it always resolves to this directory,
+    // even when Next.js detects a monorepo structure with nested package.json files.
+    config.resolve.alias['@'] = __dirname
+    return config
+  },
   async headers() {
     return [
       {
