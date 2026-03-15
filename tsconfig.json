@@ -16,13 +16,10 @@
     "resolveJsonModule": true,
     "isolatedModules": true,
     "jsx": "preserve",
-    "baseUrl": "..",
+    "baseUrl": ".",
     "paths": {
       "@/*": [
         "./*"
-      ],
-      "@admin/*": [
-        "./admin/*"
       ]
     },
     "types": [
