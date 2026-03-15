@@ -1,0 +1,53 @@
+@import '../../app/globals.css';
+
+/* Admin dashboard – UI/UX upgrade (Lovable-style) */
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* Main content area: soft, even background */
+.admin-main {
+  position: relative;
+  background: var(--background);
+}
+.admin-main::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(ellipse 120% 50% at 50% -20%, var(--primary), transparent 55%);
+  opacity: 0.04;
+  pointer-events: none;
+}
+
+/* Cards: softer borders, refined hover, consistent radius */
+.admin-card {
+  border-radius: var(--radius);
+  border: 1px solid var(--border);
+  background: var(--card);
+  transition: box-shadow 0.2s ease, border-color 0.2s ease, transform 0.15s ease;
+}
+.admin-card:hover {
+  border-color: var(--border);
+  box-shadow: 0 4px 24px -4px rgb(0 0 0 / 0.15), 0 0 0 1px rgb(255 255 255 / 0.02);
+}
+
+/* Metric/stat cards: extra polish */
+.admin-metric-card {
+  border-radius: var(--radius);
+  border: 1px solid var(--border);
+  background: var(--card);
+  transition: box-shadow 0.2s ease, border-color 0.2s ease;
+}
+.admin-metric-card:hover {
+  border-color: var(--border);
+  box-shadow: 0 8px 32px -8px rgb(0 0 0 / 0.18);
+}
+.admin-metric-card .admin-metric-value {
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.02em;
+}

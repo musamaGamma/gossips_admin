@@ -1,0 +1,18 @@
+{
+  "name": "workplace-buzz-admin",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "dev": "next dev -p 3001",
+    "build": "next build",
+    "start": "next start -p 3001",
+    "deploy": "bash scripts/deploy-admin-remote.sh",
+    "deploy:rsync": "bash scripts/deploy-admin-remote.sh --rsync"
+  },
+  "dependencies": {
+    "next": "15.5.12",
+    "react": "18.3.1",
+    "react-dom": "18.3.1"
+  }
+}
+
